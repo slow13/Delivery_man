@@ -1,0 +1,5 @@
+﻿  Main.cpp
+c:\users\k\documents\visual studio 2017\projects\game_programming\game_programming\main.cpp(91): warning C4715: 'checkBox': not all control paths return a value
+c:\users\k\documents\visual studio 2017\projects\game_programming\game_programming\main.cpp(104): warning C4715: 'checkGoal': not all control paths return a value
+  Game_programming.vcxproj -> C:\Users\K\documents\visual studio 2017\Projects\Game_programming\Debug\Delivery_man.exe
+  Game_programming.vcxproj -> C:\Users\K\documents\visual studio 2017\Projects\Game_programming\Debug\Delivery_man.pdb (Partial PDB)
