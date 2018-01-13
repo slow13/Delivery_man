@@ -31,76 +31,17 @@ void drawMap(int width, int height)
 	cout << '\n';
 }
 
-void gotoxy(short x, short y)
+void gotoxy(int x, int y)
 {
 	COORD pos = { x, y };
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }
 
-void randomPosition(short &x, short &y, const int width, const int height, int(*position)[2], int &count)
+void setcolor(int color, int bgcolor)
 {
-	bool loop = true;
-	while (loop)
-	{
-		srand((unsigned int)time(NULL));
-		x = (rand() % (width - 2)) + 1;
-		y = (rand() % (height - 2)) + 2;
-		position[count][0] = x;
-		position[count][1] = y;
-
-		for (int i = -1; i < count; i++)
-		{
-			if (position[i][0] == position[count][0] && position[i][0] == position[count][1])
-			{
-				loop = true;
-				break;
-			}
-			else
-				loop = false;
-		}
-	}
-
-	count++;
-	gotoxy(x, y);
-}
-
-bool checkWall(short &x, short &y, const int width, const int height)
-{
-	if (x == 0 || y == 1 || x == width - 1 || y == height) return true;
-	else return false;
-}
-
-bool checkBox(short &x, short &y, int(*position)[2], int arrow)
-{
-	for (int i = 0; i < NUMBER_OF_BOX; i++)
-	{
-		if (position[i][0] == x && position[i][1] == y)
-		{
-			switch (arrow)
-			{
-			case LEFT: position[i][0]--;
-			case RIGHT: position[i][0]++;
-			case UP: position[i][1]--;
-			case DOWN: position[i][1]++;
-			}
-			return true;
-			break;
-		}
-		else return false;
-	}
-}
-
-bool checkGoal(short &x, short &y, int(*position)[2])
-{
-	for (int i = NUMBER_OF_BOX; i < NUMBER_OF_BOX + NUMBER_OF_GOAL; i++)
-	{
-		if (position[i][0] == x && position[i][1] == y)
-		{
-			return true;
-			break;
-		}
-		else return false;
-	}
+	color &= 0xf;
+	bgcolor &= 0xf;
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (bgcolor << 4) | color);
 }
 
 void warningMessage(const int height)
@@ -109,13 +50,159 @@ void warningMessage(const int height)
 	cout << "Can't Move\n";
 }
 
+void successMessage(const int height)
+{
+	gotoxy(0, height + 1);
+	cout << "SUCCESS!!\n";
+}
+
+void reachGoal(int &x, int &y, const int height, int &success)
+{
+	setcolor(14, 0);
+	successMessage(height);
+	x = 0;
+	y = 0;
+	success++;
+}
+
+void randomPosition(int &x, int &y, const int width, const int height, int(*position)[2], int &count)
+{
+	bool loop = true;
+	while (loop)
+	{
+		srand((unsigned int)time(NULL));
+		x = (rand() % (width - 4)) + 2;
+		y = (rand() % (height - 4)) + 2;
+		position[count][0] = x;
+		position[count][1] = y;
+
+		if (count)
+		{
+			for (int i = 0; i < count; i++)
+			{
+				if (position[i][0] == position[count][0] && position[i][1] == position[count][1])
+				{
+					loop = true;
+					break;
+				}
+				else
+					loop = false;
+			}
+		}
+		else loop = false;
+	}
+
+	count++;
+	gotoxy(x, y);
+}
+
+bool checkWall(int &x, int &y, const int width, const int height)
+{
+	if (x == 0 || y == 0 || x == width - 1 || y == height - 1) return true;
+	else return false;
+}
+
+bool checkGoal(int &x, int &y, int(*position)[2])
+{
+	for (int i = NUMBER_OF_BOX; i < NUMBER_OF_BOX + NUMBER_OF_GOAL; i++)
+	{
+		if (position[i][0] == x && position[i][1] == y)
+		{
+			return true;
+			break;
+		}
+		else if (i + 1 == NUMBER_OF_BOX + NUMBER_OF_GOAL) return false;
+	}
+}
+
+bool checkBox(int &x, int &y, int(*position)[2], int arrow, const int width, const int height, int &success)
+{
+	for (int i = 0; i < NUMBER_OF_BOX; i++)
+	{
+		if (position[i][0] == x && position[i][1] == y)
+		{
+			switch (arrow)
+			{
+			case LEFT: 
+				position[i][0]--;
+				if (checkWall(position[i][0], position[i][1], width, height))
+				{
+					warningMessage(height);
+					position[i][0]++;
+					x++;
+					return false;
+				}
+				else if (checkGoal(position[i][0], position[i][1], position))
+				{
+					reachGoal(position[i][0], position[i][1], height, success);
+					return true;
+				}
+				else return true;
+				break;
+			case RIGHT:
+				position[i][0]++;
+				if (checkWall(position[i][0], position[i][1], width, height))
+				{
+					warningMessage(height);
+					position[i][0]--;
+					x--;
+					return false;
+				}
+				else if (checkGoal(position[i][0], position[i][1], position))
+				{
+					reachGoal(position[i][0], position[i][1], height, success);
+					return true;
+				}
+				else return true;
+				break;
+			case UP:
+				position[i][1]--;
+				if (checkWall(position[i][0], position[i][1], width, height))
+				{
+					warningMessage(height);
+					position[i][1]++;
+					y++;
+					return false;
+				}
+				else if (checkGoal(position[i][0], position[i][1], position))
+				{
+					reachGoal(position[i][0], position[i][1], height, success);
+					return true;
+				}
+				else return true;
+				break;
+			case DOWN:
+				position[i][1]++;
+				if (checkWall(position[i][0], position[i][1], width, height))
+				{
+					warningMessage(height);
+					position[i][1]--;
+					y--;
+					return false;
+				}
+				else if (checkGoal(position[i][0], position[i][1], position))
+				{
+					reachGoal(position[i][0], position[i][1], height, success);
+					return true;
+				}
+				else return true;
+				break;
+			default:
+				return false;
+			}
+			break;
+		}
+		else if (i + 1 == NUMBER_OF_BOX) return false;
+	}
+}
+
 void clearLine(const int height)
 {
 	gotoxy(0, height + 1);
 	cout << "                               ";
 }
 
-void update(short &x, short &y, const int width, const int height, int(*position)[2])
+void update(int &x, int &y, const int width, const int height, int(*position)[2], int &success)
 {
 	char c;
 
@@ -137,21 +224,22 @@ void update(short &x, short &y, const int width, const int height, int(*position
 					gotoxy(++x, y);
 					break;
 				}
-				else if (checkBox(x, y, position, LEFT))
+				else if (checkGoal(x, y, position))
+				{
+					warningMessage(height);
+					gotoxy(++x, y);
+					break;
+				}
+				else if (checkBox(x, y, position, LEFT, width, height, success))
 				{
 					gotoxy(--x, y);
 					cout << 'o';
+					setcolor(15, 0);
 					x += 2;
 					gotoxy(x, y);
 					cout << ' ';
 					gotoxy(--x, y);
 					cout << 'p';
-					break;
-				}
-				else if (checkGoal(x, y, position))
-				{
-					warningMessage(height);
-					gotoxy(++x, y);
 					break;
 				}
 				else
@@ -171,6 +259,24 @@ void update(short &x, short &y, const int width, const int height, int(*position
 					gotoxy(--x, y);
 					break;
 				}
+				else if (checkGoal(x, y, position))
+				{
+					warningMessage(height);
+					gotoxy(--x, y);
+					break;
+				}
+				else if (checkBox(x, y, position, RIGHT, width, height, success))
+				{
+					gotoxy(++x, y);
+					cout << 'o';
+					setcolor(15, 0);
+					x -= 2;
+					gotoxy(x, y);
+					cout << ' ';
+					gotoxy(++x, y);
+					cout << 'p';
+					break;
+				}
 				else
 				{
 					--x;
@@ -186,6 +292,24 @@ void update(short &x, short &y, const int width, const int height, int(*position
 				{
 					warningMessage(height);
 					gotoxy(x, ++y);
+					break;
+				}
+				else if (checkGoal(x, y, position))
+				{
+					warningMessage(height);
+					gotoxy(x, ++y);
+					break;
+				}
+				else if (checkBox(x, y, position, UP, width, height, success))
+				{
+					gotoxy(x, --y);
+					cout << 'o';
+					setcolor(15, 0);
+					y += 2;
+					gotoxy(x, y);
+					cout << ' ';
+					gotoxy(x, --y);
+					cout << 'p';
 					break;
 				}
 				else
@@ -205,6 +329,24 @@ void update(short &x, short &y, const int width, const int height, int(*position
 					gotoxy(x, --y);
 					break;
 				}
+				else if (checkGoal(x, y, position))
+				{
+					warningMessage(height);
+					gotoxy(x, --y);
+					break;
+				}
+				else if (checkBox(x, y, position, DOWN, width, height, success))
+				{
+					gotoxy(x, ++y);
+					cout << 'o';
+					setcolor(15, 0);
+					y -= 2;
+					gotoxy(x, y);
+					cout << ' ';
+					gotoxy(x, ++y);
+					cout << 'p';
+					break;
+				}
 				else
 				{
 					--y;
@@ -218,6 +360,12 @@ void update(short &x, short &y, const int width, const int height, int(*position
 			}
 		}
 	}
+
+	if (success == NUMBER_OF_BOX)
+	{
+		gotoxy(0, height);
+		cout << "CONGRATULATION!! YOU WIN!!\n";
+	}
 }
 
 int main()
@@ -225,13 +373,24 @@ int main()
 	int scanWidth, scanHeight;
 	int *width = &scanWidth;
 	int *height = &scanHeight;
-	cout << "Enter width & height : ";
-	cin >> scanWidth >> scanHeight;
+	bool check_size = true;
+	while (check_size)
+	{
+		cout << "Enter width & height ( >= 4) : ";
+		cin >> scanWidth >> scanHeight;
+		if (scanWidth < 4 || scanHeight < 4)
+			cout << "Wrong size. please re-enter size\n";
+		else check_size = false;
+	}
+	cout << "LOADING......";
+	Sleep(1000);
+	system("cls");
 	drawMap(*width, *height);
 
-	short playerX, playerY;
+	int playerX, playerY;
 	int position[10][2] = { 0 };
 	int count = 0;
+	int success = 0;
 
 	for (int i = 0; i < NUMBER_OF_BOX; i++)
 	{
@@ -251,9 +410,10 @@ int main()
 	cout << 'p';
 
 	while (true)
-		update(playerX, playerY, *width, *height, position);
-
-	gotoxy(0, *height + 1);
+	{
+		update(playerX, playerY, *width, *height, position, success);
+		if (success == NUMBER_OF_BOX) break;
+	}
 
 	return 0;
 }
